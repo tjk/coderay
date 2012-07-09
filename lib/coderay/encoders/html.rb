@@ -172,7 +172,6 @@ module Encoders
     def setup options
       super
 
-      @line_number = 1
       if options[:wrap] || options[:line_numbers]
         @real_out = @out
         @out = ''
@@ -298,9 +297,6 @@ module Encoders
 
     # whole lines to be highlighted, eg. a deleted line in a diff
     def begin_line kind
-      @out << '<div class="line'
-      @out << ' odd' if @line_number.odd?
-      @out << '">'
       if style = @span_for_kind[@last_opened ? [kind, *@opened] : kind]
         if style['class="']
           @out << style.sub('class="', 'class="line ')
@@ -323,8 +319,6 @@ module Encoders
         @out << '</span>'
         @last_opened = @opened.last if @last_opened
       end
-      @out << '</div>'
-      @line_number += 1
     end
 
   end

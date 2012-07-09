@@ -14,7 +14,7 @@ module Encoders
         unless start.is_a? Integer
           raise ArgumentError, "Invalid value %p for :line_number_start; Integer expected." % start
         end
-        
+
         anchor_prefix = options[:line_number_anchors]
         anchor_prefix = 'line' if anchor_prefix == true
         anchor_prefix = anchor_prefix.to_s[/\w+/] if anchor_prefix
@@ -28,7 +28,7 @@ module Encoders
           else
             proc { |line| line.to_s }  # :to_s.to_proc in Ruby 1.8.7+
           end
-        
+
         bold_every = options[:bold_every]
         highlight_lines = options[:highlight_lines]
         bolding =
@@ -55,7 +55,7 @@ module Encoders
           else
             raise ArgumentError, 'Invalid value %p for :bolding; false or Integer expected.' % bold_every
           end
-        
+
         line_count = output.count("\n")
         position_of_last_newline = output.rindex(RUBY_VERSION >= '1.9' ? /\n/ : ?\n)
         if position_of_last_newline
@@ -63,7 +63,7 @@ module Encoders
           ends_with_newline = after_last_newline[/\A(?:<\/span>)*\z/]
           line_count += 1 if not ends_with_newline
         end
-        
+
         case mode
         when :inline
           max_width = (start + line_count).to_s.size
@@ -72,7 +72,7 @@ module Encoders
             line_number_text = bolding.call line_number
             indent = ' ' * (max_width - line_number.to_s.size)  # TODO: Optimize (10^x)
             line_number += 1
-            "<span class=\"line-numbers\">#{indent}#{line_number_text}</span>#{line}"
+            "<div class=\"line#{" odd" if line_number.odd?}\"><span class=\"line-numbers\">#{indent}#{line_number_text}</span>#{line}</div>"
           end
 
         when :table
