@@ -72,7 +72,7 @@ module Encoders
             line_number_text = bolding.call line_number
             indent = ' ' * (max_width - line_number.to_s.size)  # TODO: Optimize (10^x)
             line_number += 1
-            "<div class=\"line#{" odd" if line_number.odd?}\"><span class=\"line-numbers\">#{indent}#{line_number_text}</span>#{line}</div>"
+            "<div class=\"line#{" odd" if line_number.even?}\"><span class=\"line-numbers\">#{indent}#{line_number_text}</span>#{line}</div>"
           end
 
         when :table
