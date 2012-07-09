@@ -2,7 +2,7 @@ require 'set'
 
 module CodeRay
 module Encoders
-  
+
   # = HTML Encoder
   #
   # This is CodeRay's most important highlighter:
@@ -15,7 +15,7 @@ module Encoders
   #  puts CodeRay.scan('Some /code/', :ruby).html(:wrap => :span)
   #  #-> <span class="CodeRay"><span class="co">Some</span> /code/</span>
   #  puts CodeRay.scan('Some /code/', :ruby).span  #-> the same
-  #  
+  #
   #  puts CodeRay.scan('Some code', :ruby).html(
   #    :wrap => nil,
   #    :line_numbers => :inline,
@@ -26,7 +26,7 @@ module Encoders
   #
   # === :tab_width
   # Convert \t characters to +n+ spaces (a number.)
-  # 
+  #
   # Default: 8
   #
   # === :css
@@ -42,13 +42,13 @@ module Encoders
   # Default: nil
   #
   # === :title
-  # 
+  #
   # The title of the HTML page (works only when :wrap is set to :page.)
   #
   # Default: 'CodeRay output'
   #
   # === :break_lines
-  # 
+  #
   # Split multiline blocks at line breaks.
   # Forced to true if :line_numbers option is set to :inline.
   #
@@ -78,10 +78,10 @@ module Encoders
   # Default: 10
   #
   # === :highlight_lines
-  # 
+  #
   # Highlights certain line numbers.
   # Can be any Enumerable, typically just an Array or Range, of numbers.
-  # 
+  #
   # Bolding is deactivated when :highlight_lines is set. It only makes sense
   # in combination with :line_numbers.
   #
@@ -94,45 +94,45 @@ module Encoders
   #
   # Default: false
   class HTML < Encoder
-    
+
     register_for :html
-    
+
     FILE_EXTENSION = 'snippet.html'
-    
+
     DEFAULT_OPTIONS = {
       :tab_width => 8,
-      
+
       :css   => :class,
       :style => :alpha,
       :wrap  => nil,
       :title => 'CodeRay output',
-      
+
       :break_lines => false,
-      
+
       :line_numbers        => nil,
       :line_number_anchors => 'n',
       :line_number_start   => 1,
       :bold_every          => 10,
       :highlight_lines     => nil,
-      
+
       :hint => false,
     }
-    
+
     autoload :Output,    CodeRay.coderay_path('encoders', 'html', 'output')
     autoload :CSS,       CodeRay.coderay_path('encoders', 'html', 'css')
     autoload :Numbering, CodeRay.coderay_path('encoders', 'html', 'numbering')
-    
+
     attr_reader :css
-    
+
   protected
-    
+
     HTML_ESCAPE = {  #:nodoc:
       '&' => '&amp;',
       '"' => '&quot;',
       '>' => '&gt;',
       '<' => '&lt;',
     }
-    
+
     # This was to prevent illegal HTML.
     # Strange chars should still be avoided in codes.
     evil_chars = Array(0x00...0x20) - [?\n, ?\t, ?\s]
@@ -142,15 +142,15 @@ module Encoders
     # \x9 (\t) and \xA (\n) not included
     #HTML_ESCAPE_PATTERN = /[\t&"><\0-\x8\xB-\x1f\x7f-\xff]/
     HTML_ESCAPE_PATTERN = /[\t"&><\0-\x8\xB-\x1f]/
-    
+
     TOKEN_KIND_TO_INFO = Hash.new do |h, kind|
       h[kind] = kind.to_s.gsub(/_/, ' ').gsub(/\b\w/) { $&.capitalize }
     end
-    
+
     TRANSPARENT_TOKEN_KINDS = Set[
       :delimiter, :modifier, :content, :escape, :inline_delimiter,
     ]
-    
+
     # Generate a hint about the given +kinds+ in a +hint+ style.
     #
     # +hint+ may be :info, :info_long or :debug.
@@ -168,32 +168,33 @@ module Encoders
         end
       title ? " title=\"#{title}\"" : ''
     end
-    
+
     def setup options
       super
-      
+
+      @line_number = 1
       if options[:wrap] || options[:line_numbers]
         @real_out = @out
         @out = ''
       end
-      
+
       options[:break_lines] = true if options[:line_numbers] == :inline
-      
+
       @break_lines = (options[:break_lines] == true)
-      
+
       @HTML_ESCAPE = HTML_ESCAPE.dup
       @HTML_ESCAPE["\t"] = ' ' * options[:tab_width]
-      
+
       @opened = []
       @last_opened = nil
       @css = CSS.new options[:style]
-      
+
       hint = options[:hint]
       if hint && ![:debug, :info, :info_long].include?(hint)
         raise ArgumentError, "Unknown value %p for :hint; \
           expected :info, :info_long, :debug, false, or nil." % hint
       end
-      
+
       css_classes = TokenKinds
       case options[:css]
       when :class
@@ -225,17 +226,17 @@ module Encoders
       else
         raise ArgumentError, "Unknown value %p for :css." % options[:css]
       end
-      
+
       @set_last_opened = options[:hint] || options[:css] == :style
     end
-    
+
     def finish options
       unless @opened.empty?
         warn '%d tokens still open: %p' % [@opened.size, @opened] if $CODERAY_DEBUG
         @out << '</span>' while @opened.pop
         @last_opened = nil
       end
-      
+
       @out.extend Output
       @out.css = @css
       if options[:line_numbers]
@@ -243,24 +244,24 @@ module Encoders
       end
       @out.wrap! options[:wrap]
       @out.apply_title! options[:title]
-      
+
       if defined?(@real_out) && @real_out
         @real_out << @out
         @out = @real_out
       end
-      
+
       super
     end
-    
+
   public
-    
+
     def text_token text, kind
       if text =~ /#{HTML_ESCAPE_PATTERN}/o
         text = text.gsub(/#{HTML_ESCAPE_PATTERN}/o) { |m| @HTML_ESCAPE[m] }
       end
-      
+
       style = @span_for_kind[@last_opened ? [kind, *@opened] : kind]
-      
+
       if @break_lines && (i = text.index("\n")) && (c = @opened.size + (style ? 1 : 0)) > 0
         close = '</span>' * c
         reopen = ''
@@ -269,21 +270,21 @@ module Encoders
         end
         text[i .. -1] = text[i .. -1].gsub("\n", "#{close}\n#{reopen}#{style}")
       end
-      
+
       if style
         @out << style << text << '</span>'
       else
         @out << text
       end
     end
-    
+
     # token groups, eg. strings
     def begin_group kind
       @out << (@span_for_kind[@last_opened ? [kind, *@opened] : kind] || '<span>')
       @opened << kind
       @last_opened = kind if @set_last_opened
     end
-    
+
     def end_group kind
       if $CODERAY_DEBUG && (@opened.empty? || @opened.last != kind)
         warn 'Malformed token stream: Trying to close a token (%p) ' \
@@ -294,9 +295,12 @@ module Encoders
         @last_opened = @opened.last if @last_opened
       end
     end
-    
+
     # whole lines to be highlighted, eg. a deleted line in a diff
     def begin_line kind
+      @out << '<div class="line'
+      @out << ' odd' if @line_number.odd?
+      @out << '">'
       if style = @span_for_kind[@last_opened ? [kind, *@opened] : kind]
         if style['class="']
           @out << style.sub('class="', 'class="line ')
@@ -309,7 +313,7 @@ module Encoders
       @opened << kind
       @last_opened = kind if @options[:css] == :style
     end
-    
+
     def end_line kind
       if $CODERAY_DEBUG && (@opened.empty? || @opened.last != kind)
         warn 'Malformed token stream: Trying to close a line (%p) ' \
@@ -319,9 +323,11 @@ module Encoders
         @out << '</span>'
         @last_opened = @opened.last if @last_opened
       end
+      @out << '</div>'
+      @line_number += 1
     end
-    
+
   end
-  
+
 end
 end
